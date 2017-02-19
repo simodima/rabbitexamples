@@ -1,0 +1,87 @@
+version: '2'
+services:
+  amqp_host:
+    image: rabbitmq:management
+    ports:
+      - 15672:15672
+      - 5672:5672
+
+  redis:
+    image: redis:2.8
+    expose:
+      - "6379"
+
+  app:
+    build: application
+    command: tail -f /dev/null
+    depends_on:
+        - amqp_host
+    environment:
+        - RABBIT_HOST=amqp_host
+    working_dir: /app/application
+    volumes:
+        - .:/app
+
+  like_response_handler:
+    restart: always
+    depends_on:
+        - amqp_host
+    environment:
+        - RABBIT_HOST=amqp_host
+    build: application
+    command: bash /wait.sh amqp_host:5672 -- bin/console app:consumer:page_like
+    working_dir: /app/application
+    volumes:
+        - .:/app
+
+  downloader:
+    restart: always
+    depends_on:
+        - amqp_host
+        - redis
+    environment:
+        - RABBIT_HOST=amqp_host
+        - REMOTE_API=http://remote_api:8000/
+        - REDIS_HOST=redis
+        - REDIS_PORT=6379
+    build: downloader
+    command: bash /wait.sh amqp_host:5672 -- bash /wait.sh redis:6379 -- bin/console app:downloader:start
+    working_dir: /app/downloader
+    volumes:
+        - .:/app
+
+  log_warning:
+    restart: always
+    depends_on:
+        - amqp_host
+    environment:
+        - RABBIT_HOST=amqp_host
+    build: logger
+    command: bash /wait.sh amqp_host:5672 -- bin/console log warning
+    working_dir: /app/logger
+    volumes:
+        - .:/app
+
+  log_info:
+    restart: always
+    depends_on:
+        - amqp_host
+    environment:
+        - RABBIT_HOST=amqp_host
+    build: logger
+    command: bash /wait.sh amqp_host:5672 -- bin/console log info
+    working_dir: /app/logger
+    volumes:
+        - .:/app
+
+  remote_api:
+    restart: always
+    image: node
+    ports:
+      - 8000:8000
+    environment:
+        - PORT=8000
+    command: node index.js
+    working_dir: /app
+    volumes:
+        - ./remoteApi:/app

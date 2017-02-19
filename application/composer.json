@@ -1,0 +1,13 @@
+{
+    "autoload": {
+        "psr-4": {
+            "Pugger\\": "src/",
+            "Rabbit\\": "../Rabbit"
+        }
+    },
+    "require": {
+        "php-amqplib/php-amqplib": "2.6.*",
+        "symfony/console": "^3.2",
+        "pimple/pimple": "^3.0"
+    }
+}

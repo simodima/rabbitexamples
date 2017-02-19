@@ -1,0 +1,4 @@
+application/vendor
+downloader/vendor
+logger/vendor
+remoteApi/node_modules
